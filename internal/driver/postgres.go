@@ -2,6 +2,8 @@ package driver
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"github.com/jmoiron/sqlx"
 )
 import _ "github.com/jackc/pgx/stdlib"
@@ -67,14 +69,29 @@ func (p PgStorage) InitScheme() error {
 	if exist || err != nil {
 		return err
 	}
-	return nil
+
+	tx, err := p.db.Begin()
+
+	_, err = tx.ExecContext(p.context, enum)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(p.context, migrationTable)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p PgStorage) existingScheme() (bool, error) {
 	resRow := p.db.QueryRowContext(p.context, checkQuery)
 	var exist string
 	err := resRow.Scan(&exist)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false, err
 	}
 
