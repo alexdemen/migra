@@ -22,7 +22,5 @@ func NewExecutor(storage driver.Storage) (*executor, error) {
 		storage: storage,
 	}
 
-	ex.check()
-
-	return &ex, nil
+	return &ex, ex.check()
 }
