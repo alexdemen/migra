@@ -52,7 +52,7 @@ const (
 	AND table_name = 'migration';`
 
 	statusUpdate = `
-	UPDATE  migration SET status = $1 WHERE id = $2
+	UPDATE  migration SET status = $1, time = now() WHERE id = $2
 	`
 )
 
@@ -118,6 +118,8 @@ func (p PgStorage) RollbackLastMigration() error {
 	err := p.db.QueryRowxContext(p.context, getRollbackQuery).StructScan(&migration)
 	if err != nil {
 		return err
+	} else if migration.Status != StatusReady {
+		return core.LastMigrationStatusError
 	}
 
 	tx, err := p.db.Begin()
@@ -136,6 +138,10 @@ func (p PgStorage) RollbackLastMigration() error {
 	tx.Commit()
 	p.db.ExecContext(p.context, statusUpdate, StatusRollback, migration.Id)
 
+	return nil
+}
+
+func (p PgStorage) RollBackMigration(name string) error {
 	return nil
 }
 
@@ -246,10 +252,10 @@ func (p PgStorage) checkOrder(name string, id int64) (bool, error) {
 	var actualId int64
 	err := p.db.QueryRowContext(p.context, check, name).Scan(&actualId)
 	if err != nil {
-		//TODO Удалить данную миграцию
+		p.db.ExecContext(p.context, "DELETE FROM migration WHERE id = $1", id)
 		return false, err
 	} else if id != actualId {
-		//TODO удалить миграцию
+		p.db.ExecContext(p.context, "DELETE FROM migration WHERE id = $1", id)
 		return false, core.MigrationExistError
 	}
 

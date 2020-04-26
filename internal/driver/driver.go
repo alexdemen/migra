@@ -7,5 +7,6 @@ type Storage interface {
 	InitScheme() error
 	ExecMigration(migration core.Migration) error
 	RollbackLastMigration() error
+	RollBackMigration(name string) error
 	GetStatus() ([]core.Status, error)
 }
