@@ -109,7 +109,7 @@ func (p PgStorage) RollbackLastMigration() error {
 	WHERE id = (SELECT max(id) FROM migration);`
 
 	migration := struct {
-		Id     int64
+		ID     int64
 		Query  string `db:"down"`
 		Name   string
 		Status string
@@ -118,7 +118,9 @@ func (p PgStorage) RollbackLastMigration() error {
 	err := p.db.QueryRowxContext(p.context, getRollbackQuery).StructScan(&migration)
 	if err != nil {
 		return err
-	} else if migration.Status != StatusReady {
+	}
+
+	if migration.Status != StatusReady {
 		return core.LastMigrationStatusError
 	}
 
@@ -127,7 +129,7 @@ func (p PgStorage) RollbackLastMigration() error {
 		return err
 	}
 
-	p.db.ExecContext(p.context, statusUpdate, StatusDown, migration.Id)
+	p.db.ExecContext(p.context, statusUpdate, StatusDown, migration.ID)
 
 	_, err = tx.ExecContext(p.context, migration.Query)
 	if err != nil {
@@ -136,7 +138,7 @@ func (p PgStorage) RollbackLastMigration() error {
 	}
 
 	tx.Commit()
-	p.db.ExecContext(p.context, statusUpdate, StatusRollback, migration.Id)
+	p.db.ExecContext(p.context, statusUpdate, StatusRollback, migration.ID)
 
 	return nil
 }
@@ -184,7 +186,7 @@ func (p PgStorage) ExecMigration(migration core.Migration) error {
 			select {
 			case <-awaiter.C:
 				{
-					ready, err := p.checkOrder(migration.Name(), id)
+					ready, err := p.checkOrder(migration.Name, id)
 					if err != nil {
 						return err
 					} else if ready {
@@ -229,9 +231,9 @@ func (p PgStorage) registerMigration(migration core.Migration) (int64, error) {
 	err := p.db.QueryRowContext(
 		p.context,
 		sqlQuery,
-		migration.Name(),
-		migration.Query(),
-		migration.ReversQuery(),
+		migration.Name,
+		migration.Query,
+		migration.ReversQuery,
 		StatusRegister).Scan(&lastId)
 
 	return lastId, err
@@ -281,7 +283,7 @@ func (p PgStorage) exec(migration core.Migration, id int64) error {
 
 	tx.ExecContext(p.context, statusUpdate, StatusPending, id)
 
-	_, err = p.db.ExecContext(p.context, migration.Query())
+	_, err = p.db.ExecContext(p.context, migration.Query)
 	if err != nil {
 		tx.Rollback()
 		p.db.ExecContext(p.context, statusUpdate, StatusFail, id)
