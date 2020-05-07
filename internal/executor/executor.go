@@ -28,24 +28,24 @@ func (e Executor) ApplyMigrations(migrations []core.Migration, policy int) chan 
 			err := e.storage.ExecMigration(migration)
 			if err != nil {
 				done <- core.Message{
-					Info: fmt.Sprintf("migration %s has been apply", migration.Name()),
+					Info: fmt.Sprintf("migration %s has been apply", migration.Name),
 					Time: time.Now(),
 				}
 				if policy == BreakPolicy {
 					break
 				} else if policy == RollbackPolicy {
 					for i := idx - 1; i >= 0; i-- {
-						err = e.storage.RollBackMigration(migrations[i].Name())
+						err = e.storage.RollBackMigration(migrations[i].Name)
 						if err != nil {
 							done <- core.Message{
-								Error: errors.New("can`t rollback migration " + migrations[i].Name()),
+								Error: errors.New("can`t rollback migration " + migrations[i].Name),
 							}
 						}
 					}
 				}
 			} else {
 				done <- core.Message{
-					Info: fmt.Sprintf("migration %s has been apply", migration.Name()),
+					Info: fmt.Sprintf("migration %s has been apply", migration.Name),
 					Time: time.Now(),
 				}
 			}
